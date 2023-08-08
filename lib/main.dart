@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 
@@ -126,7 +127,7 @@ class _MainViewState extends State<MainView> {
               SizedBox(
                 width: 200,
                 child: Slider(
-                  value: _minutes.toDouble(),
+                  value: max(1.0, _minutes.toDouble()),
                   min: 1,
                   max: 60,
                   label: _minutes.toString(),
