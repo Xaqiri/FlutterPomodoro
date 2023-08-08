@@ -6,7 +6,7 @@ void main() {
   runApp(const MyApp());
 }
 
-enum timerOptions { start, stop }
+enum TimerOptions { start, stop }
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -16,7 +16,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Pomodoro',
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.cyan),
         useMaterial3: true,
       ),
       home: const MainView(title: 'Pomodoro'),
@@ -39,7 +39,7 @@ class _MainViewState extends State<MainView> {
   String _secondsDisplay = "00";
   Timer? t;
   Icon _timerButtonIcon = const Icon(Icons.play_arrow);
-  timerOptions _timerAction = timerOptions.start;
+  TimerOptions _timerAction = TimerOptions.start;
   var _tick = 0;
 
   @override
@@ -47,30 +47,12 @@ class _MainViewState extends State<MainView> {
     super.initState();
   }
 
-  void _decrementMinutes() {
-    setState(() {
-      _minutes--;
-      _minutesDisplay = _minutes.toString();
-      _seconds = 0;
-      setTimerDisplay();
-    });
-  }
-
-  void _incrementMinutes() {
-    setState(() {
-      _minutes++;
-      _minutesDisplay = _minutes.toString();
-      _seconds = 0;
-      setTimerDisplay();
-    });
-  }
-
   void _startTimer() {
     void tFunc(Timer timer) {
       setState(() {
         _tick++;
         _timerButtonIcon = const Icon(Icons.stop);
-        _timerAction = timerOptions.stop;
+        _timerAction = TimerOptions.stop;
         _seconds--;
         if (_seconds < 0) {
           _seconds = 59;
@@ -95,7 +77,7 @@ class _MainViewState extends State<MainView> {
       t!.cancel();
       _tick = 0;
       _timerButtonIcon = const Icon(Icons.play_arrow);
-      _timerAction = timerOptions.start;
+      _timerAction = TimerOptions.start;
     });
   }
 
@@ -116,40 +98,60 @@ class _MainViewState extends State<MainView> {
         title: Text(widget.title),
       ),
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: <Widget>[
-            const Text(
-              'Work Timer',
-            ),
-            Text(
-              '$_minutesDisplay:$_secondsDisplay',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget>[
-                FilledButton(
-                  onPressed: _decrementMinutes,
-                  child: const Icon(Icons.remove),
-                ),
-                FilledButton(
-                  onPressed: _incrementMinutes,
-                  child: const Icon(Icons.add),
-                ),
+        child: Container(
+          constraints: const BoxConstraints.expand(),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: <Color>[
+                Theme.of(context).colorScheme.inversePrimary,
+                Theme.of(context).colorScheme.primary,
               ],
             ),
-          ],
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: <Widget>[
+              const Text(
+                'Work Timer',
+                style: TextStyle(
+                  fontSize: 32,
+                ),
+              ),
+              Text(
+                '$_minutesDisplay:$_secondsDisplay',
+                style: Theme.of(context).textTheme.headlineLarge,
+              ),
+              SizedBox(
+                width: 200,
+                child: Slider(
+                  value: _minutes.toDouble(),
+                  min: 1,
+                  max: 60,
+                  label: _minutes.toString(),
+                  onChanged: (double value) {
+                    setState(() {
+                      _minutes = value.toInt();
+                      _seconds = 0;
+                      setTimerDisplay();
+                    });
+                  },
+                ),
+              ),
+            ],
+          ),
         ),
       ),
       floatingActionButton: FloatingActionButton(
+        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         onPressed: switch (_timerAction) {
-          timerOptions.start => _startTimer,
-          timerOptions.stop => _stopTimer
+          TimerOptions.start => _startTimer,
+          TimerOptions.stop => _stopTimer
         },
         tooltip: switch (_timerAction) {
-          timerOptions.start => "Start timer",
-          timerOptions.stop => "Stop timer"
+          TimerOptions.start => "Start timer",
+          TimerOptions.stop => "Stop timer"
         },
         child: _timerButtonIcon,
       ),
