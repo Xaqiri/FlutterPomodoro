@@ -9,6 +9,20 @@ void main() {
 
 enum TimerOptions { start, stop }
 
+enum TimerType { work, rest }
+
+class Pomodoro {
+  int minutes = 0;
+  int seconds = 0;
+  TimerType type = TimerType.work;
+  Pomodoro({required this.minutes, required this.seconds, required this.type});
+
+  @override
+  String toString() {
+    return type == TimerType.work ? 'Work Timer' : 'Break Timer';
+  }
+}
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -34,9 +48,10 @@ class MainView extends StatefulWidget {
 }
 
 class _MainViewState extends State<MainView> {
-  int _minutes = 1;
+  final _workTimer = Pomodoro(minutes: 25, seconds: 0, type: TimerType.work);
+  final _breakTimer = Pomodoro(minutes: 5, seconds: 0, type: TimerType.rest);
+  late Pomodoro _curTimer;
   String _minutesDisplay = "1";
-  int _seconds = 0;
   String _secondsDisplay = "00";
   Timer? t;
   Icon _timerButtonIcon = const Icon(Icons.play_arrow);
@@ -46,6 +61,8 @@ class _MainViewState extends State<MainView> {
   @override
   void initState() {
     super.initState();
+    _curTimer = _workTimer;
+    _minutesDisplay = _curTimer.minutes.toString();
   }
 
   void _startTimer() {
@@ -54,14 +71,14 @@ class _MainViewState extends State<MainView> {
         _tick++;
         _timerButtonIcon = const Icon(Icons.stop);
         _timerAction = TimerOptions.stop;
-        _seconds--;
-        if (_seconds < 0) {
-          _seconds = 59;
-          _minutes--;
+        _curTimer.seconds--;
+        if (_curTimer.seconds < 0) {
+          _curTimer.seconds = 59;
+          _curTimer.minutes--;
         }
         setTimerDisplay();
       });
-      if (_minutes == 0 && _seconds == 0) {
+      if (_curTimer.minutes == 0 && _curTimer.seconds == 0) {
         timer.cancel();
       }
       if (_tick == 1) {
@@ -84,10 +101,20 @@ class _MainViewState extends State<MainView> {
 
   void setTimerDisplay() {
     setState(() {
-      _minutesDisplay = "$_minutes";
-      _seconds < 10
-          ? _secondsDisplay = "0$_seconds"
-          : _secondsDisplay = "$_seconds";
+      _minutesDisplay = "${_curTimer.minutes}";
+      _curTimer.seconds < 10
+          ? _secondsDisplay = "0${_curTimer.seconds}"
+          : _secondsDisplay = "${_curTimer.seconds}";
+    });
+  }
+
+  void _changeTimer() {
+    setState(() {
+      _curTimer = switch (_curTimer.type) {
+        TimerType.work => _breakTimer,
+        TimerType.rest => _workTimer
+      };
+      setTimerDisplay();
     });
   }
 
@@ -114,9 +141,13 @@ class _MainViewState extends State<MainView> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.start,
             children: <Widget>[
-              const Text(
-                'Work Timer',
-                style: TextStyle(
+              TextButton(
+                onPressed: _changeTimer,
+                child: const Text('Change Timer'),
+              ),
+              Text(
+                _curTimer.toString(),
+                style: const TextStyle(
                   fontSize: 32,
                 ),
               ),
@@ -127,14 +158,14 @@ class _MainViewState extends State<MainView> {
               SizedBox(
                 width: 200,
                 child: Slider(
-                  value: max(1.0, _minutes.toDouble()),
+                  value: max(1.0, _curTimer.minutes.toDouble()),
                   min: 1,
                   max: 60,
-                  label: _minutes.toString(),
+                  label: _curTimer.minutes.toString(),
                   onChanged: (double value) {
                     setState(() {
-                      _minutes = value.toInt();
-                      _seconds = 0;
+                      _curTimer.minutes = value.toInt();
+                      _curTimer.seconds = 0;
                       setTimerDisplay();
                     });
                   },
