@@ -1,10 +1,19 @@
 import 'dart:async';
 import 'dart:math';
 
-import 'package:macos_ui/macos_ui.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:macos_ui/macos_ui.dart';
 
-void main() {
+Future<void> _configureMacosWindowUtils() async {
+  const config = MacosWindowUtilsConfig(
+    toolbarStyle: NSWindowToolbarStyle.unified,
+  );
+  await config.apply();
+}
+
+void main() async {
+  await _configureMacosWindowUtils();
   runApp(const MyApp());
 }
 
@@ -37,13 +46,13 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return MacosApp(
       title: 'Pomodoro',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.cyan),
-        useMaterial3: true,
-      ),
+      theme: MacosThemeData.light(),
+      darkTheme: MacosThemeData.dark(),
+      themeMode: ThemeMode.system,
       home: const MainView(title: 'Pomodoro'),
+      debugShowCheckedModeBanner: false,
     );
   }
 }
@@ -61,7 +70,7 @@ class _MainViewState extends State<MainView> {
   final _breakTimer = Pomodoro(minutes: 5, seconds: 0, type: TimerType.rest);
   late Pomodoro _curTimer;
   Timer? t;
-  Icon _timerButtonIcon = const Icon(Icons.play_arrow);
+  var _timerButtonIcon = const MacosIcon(CupertinoIcons.play);
   TimerOptions _timerAction = TimerOptions.start;
   var _tick = 0;
 
@@ -75,7 +84,7 @@ class _MainViewState extends State<MainView> {
     void tFunc(Timer timer) {
       setState(() {
         _tick++;
-        _timerButtonIcon = const Icon(Icons.stop);
+        _timerButtonIcon = const MacosIcon(CupertinoIcons.stop);
         _timerAction = TimerOptions.stop;
         _curTimer.seconds--;
         if (_curTimer.seconds < 0) {
@@ -99,7 +108,7 @@ class _MainViewState extends State<MainView> {
     setState(() {
       t!.cancel();
       _tick = 0;
-      _timerButtonIcon = const Icon(Icons.play_arrow);
+      _timerButtonIcon = const MacosIcon(CupertinoIcons.play);
       _timerAction = TimerOptions.start;
     });
   }
@@ -115,71 +124,86 @@ class _MainViewState extends State<MainView> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: Text(widget.title),
-      ),
-      body: Center(
-        child: Container(
-          constraints: const BoxConstraints.expand(),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: <Color>[
-                Theme.of(context).colorScheme.inversePrimary,
-                Theme.of(context).colorScheme.primary,
-              ],
+    return MacosWindow(
+      child: MacosScaffold(
+        toolBar: ToolBar(
+          dividerColor: MacosColors.transparent,
+          padding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+          title: Text(widget.title),
+          actions: [
+            ToolBarIconButton(
+              label: switch (_timerAction) {
+                TimerOptions.start => "Start timer",
+                TimerOptions.stop => "Stop timer"
+              },
+              tooltipMessage: switch (_timerAction) {
+                TimerOptions.start => "Start timer",
+                TimerOptions.stop => "Stop timer"
+              },
+              icon: _timerButtonIcon,
+              showLabel: false,
+              onPressed: switch (_timerAction) {
+                TimerOptions.start => _startTimer,
+                TimerOptions.stop => _stopTimer
+              },
             ),
-          ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: <Widget>[
-              TextButton(
-                onPressed: _changeTimer,
-                child: const Text('Change Timer'),
-              ),
-              Text(
-                _curTimer.toString(),
-                style: const TextStyle(
-                  fontSize: 32,
-                ),
-              ),
-              Text(
-                _curTimer.time(),
-                style: Theme.of(context).textTheme.headlineLarge,
-              ),
-              SizedBox(
-                width: 200,
-                child: Slider(
-                  value: max(1, _curTimer.minutes.toDouble()),
-                  min: 1,
-                  max: 60,
-                  label: _curTimer.minutes.toString(),
-                  onChanged: (double value) {
-                    setState(() {
-                      _curTimer.minutes = value.toInt();
-                      _curTimer.seconds = 0;
-                    });
-                  },
-                ),
-              ),
-            ],
-          ),
+            ToolBarIconButton(
+              onPressed: _changeTimer,
+              tooltipMessage: 'Change Timer',
+              label: 'Change Timer',
+              showLabel: false,
+              icon: const MacosIcon(CupertinoIcons.restart),
+            ),
+          ],
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        onPressed: switch (_timerAction) {
-          TimerOptions.start => _startTimer,
-          TimerOptions.stop => _stopTimer
-        },
-        tooltip: switch (_timerAction) {
-          TimerOptions.start => "Start timer",
-          TimerOptions.stop => "Stop timer"
-        },
-        child: _timerButtonIcon,
+        children: [
+          ContentArea(
+            builder: ((context, scrollController) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      width: 1000,
+                      child: Column(children: [
+                        ProgressBar(
+                            height: 10,
+                            value: 100 / 60 * _curTimer.minutes.toDouble()),
+                        ProgressBar(
+                            height: 10,
+                            value: 100 / 60 * _curTimer.seconds.toDouble()),
+                      ]),
+                    ),
+                    Text(
+                      _curTimer.toString(),
+                      style: const TextStyle(
+                        fontSize: 32,
+                      ),
+                    ),
+                    Text(
+                      _curTimer.time(),
+                      style: const TextStyle(fontSize: 32),
+                    ),
+                    SizedBox(
+                      width: 200,
+                      child: MacosSlider(
+                        value: max(1, _curTimer.minutes.toDouble()),
+                        min: 1,
+                        max: 60,
+                        onChanged: (double value) {
+                          setState(() {
+                            _curTimer.minutes = value.toInt();
+                            _curTimer.seconds = 0;
+                          });
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ),
+        ],
       ),
     );
   }
