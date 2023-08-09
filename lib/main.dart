@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 
+import 'package:macos_ui/macos_ui.dart';
 import 'package:flutter/material.dart';
 
 void main() {
@@ -15,11 +16,19 @@ class Pomodoro {
   int minutes = 0;
   int seconds = 0;
   TimerType type = TimerType.work;
+
   Pomodoro({required this.minutes, required this.seconds, required this.type});
+
+  String time() {
+    return '${minutes.toString()}:${seconds.toString().padLeft(2, "0")}';
+  }
 
   @override
   String toString() {
-    return type == TimerType.work ? 'Work Timer' : 'Break Timer';
+    return switch (type) {
+      TimerType.work => 'Work Timer',
+      TimerType.rest => 'Break Timer'
+    };
   }
 }
 
@@ -51,8 +60,6 @@ class _MainViewState extends State<MainView> {
   final _workTimer = Pomodoro(minutes: 25, seconds: 0, type: TimerType.work);
   final _breakTimer = Pomodoro(minutes: 5, seconds: 0, type: TimerType.rest);
   late Pomodoro _curTimer;
-  String _minutesDisplay = "1";
-  String _secondsDisplay = "00";
   Timer? t;
   Icon _timerButtonIcon = const Icon(Icons.play_arrow);
   TimerOptions _timerAction = TimerOptions.start;
@@ -62,7 +69,6 @@ class _MainViewState extends State<MainView> {
   void initState() {
     super.initState();
     _curTimer = _workTimer;
-    _minutesDisplay = _curTimer.minutes.toString();
   }
 
   void _startTimer() {
@@ -76,7 +82,6 @@ class _MainViewState extends State<MainView> {
           _curTimer.seconds = 59;
           _curTimer.minutes--;
         }
-        setTimerDisplay();
       });
       if (_curTimer.minutes == 0 && _curTimer.seconds == 0) {
         timer.cancel();
@@ -99,22 +104,12 @@ class _MainViewState extends State<MainView> {
     });
   }
 
-  void setTimerDisplay() {
-    setState(() {
-      _minutesDisplay = "${_curTimer.minutes}";
-      _curTimer.seconds < 10
-          ? _secondsDisplay = "0${_curTimer.seconds}"
-          : _secondsDisplay = "${_curTimer.seconds}";
-    });
-  }
-
   void _changeTimer() {
     setState(() {
       _curTimer = switch (_curTimer.type) {
         TimerType.work => _breakTimer,
         TimerType.rest => _workTimer
       };
-      setTimerDisplay();
     });
   }
 
@@ -152,13 +147,13 @@ class _MainViewState extends State<MainView> {
                 ),
               ),
               Text(
-                '$_minutesDisplay:$_secondsDisplay',
+                _curTimer.time(),
                 style: Theme.of(context).textTheme.headlineLarge,
               ),
               SizedBox(
                 width: 200,
                 child: Slider(
-                  value: max(1.0, _curTimer.minutes.toDouble()),
+                  value: max(1, _curTimer.minutes.toDouble()),
                   min: 1,
                   max: 60,
                   label: _curTimer.minutes.toString(),
@@ -166,7 +161,6 @@ class _MainViewState extends State<MainView> {
                     setState(() {
                       _curTimer.minutes = value.toInt();
                       _curTimer.seconds = 0;
-                      setTimerDisplay();
                     });
                   },
                 ),
