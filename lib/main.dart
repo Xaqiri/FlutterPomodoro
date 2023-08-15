@@ -5,6 +5,8 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:macos_ui/macos_ui.dart';
 
+import 'pomodoro.dart';
+
 Future<void> _configureMacosWindowUtils() async {
   const config = MacosWindowUtilsConfig(
     toolbarStyle: NSWindowToolbarStyle.unified,
@@ -15,30 +17,6 @@ Future<void> _configureMacosWindowUtils() async {
 void main() async {
   await _configureMacosWindowUtils();
   runApp(const MyApp());
-}
-
-enum TimerOptions { start, stop }
-
-enum TimerType { work, rest }
-
-class Pomodoro {
-  int minutes = 0;
-  int seconds = 0;
-  TimerType type = TimerType.work;
-
-  Pomodoro({required this.minutes, required this.seconds, required this.type});
-
-  String time() {
-    return '${minutes.toString()}:${seconds.toString().padLeft(2, "0")}';
-  }
-
-  @override
-  String toString() {
-    return switch (type) {
-      TimerType.work => 'Work Timer',
-      TimerType.rest => 'Break Timer'
-    };
-  }
 }
 
 class MyApp extends StatelessWidget {
@@ -73,6 +51,25 @@ class _MainViewState extends State<MainView> {
   var _timerButtonIcon = const MacosIcon(CupertinoIcons.play);
   TimerOptions _timerAction = TimerOptions.start;
   var _tick = 0;
+
+  // final timePicker = switch (_tick) { _ => "none" };
+
+  void _showTimePicker(Widget child) {
+    showCupertinoModalPopup(
+      context: context,
+      builder: (BuildContext context) => Container(
+        height: 216,
+        padding: const EdgeInsets.only(top: 6.0),
+        margin: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: SafeArea(
+          top: false,
+          child: child,
+        ),
+      ),
+    );
+  }
 
   @override
   void initState() {
@@ -180,9 +177,20 @@ class _MainViewState extends State<MainView> {
                         fontSize: 32,
                       ),
                     ),
-                    Text(
-                      _curTimer.time(),
-                      style: const TextStyle(fontSize: 32),
+                    CupertinoButton(
+                      onPressed: () => _showTimePicker(
+                        CupertinoTimerPicker(
+                          mode: CupertinoTimerPickerMode.ms,
+                          onTimerDurationChanged: (time) => setState(() {
+                            _curTimer.minutes = time.inMinutes;
+                            _curTimer.seconds = time.inSeconds % 60;
+                          }),
+                        ),
+                      ),
+                      child: Text(
+                        _curTimer.time(),
+                        style: const TextStyle(fontSize: 32),
+                      ),
                     ),
                     SizedBox(
                       width: 200,
